@@ -1,0 +1,225 @@
+/* Idea Generation Menu Styles */
+.idea-gen-container {
+  margin-top: 4rem;
+  text-align: center;
+  background: #fff;
+  min-height: 80vh;
+}
+
+.idea-gen-title {
+  font-size: 2.5rem;
+  font-family: 'Georgia', serif;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #2d1c1c;
+}
+
+.idea-gen-subtitle {
+  font-size: 1.25rem;
+  color: #444;
+  margin-bottom: 2.5rem;
+}
+
+.idea-gen-form {
+  background: #fff;
+  border: 1.5px solid #4442;
+  border-radius: 12px;
+  max-width: 1200px;
+  width: 90vw;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(30,185,84,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.idea-gen-textarea-row {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+.idea-gen-textarea {
+  width: 90%;
+  min-height: 2.5em;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  border: 1px solid #bbb;
+  padding: 0.75em 0.75em;
+  resize: none;
+  font-family: inherit;
+  background: #faf8fb;
+}
+
+.idea-gen-or {
+  font-size: 1.2rem;
+  color: #444;
+  margin: 0.5rem 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.idea-gen-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.idea-gen-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 180px;
+  gap: 0.5rem;  
+}
+.idea-gen-filter label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #222;
+}
+.idea-gen-filter select {
+  width: 100%;
+  padding: 0.5em 0.75em;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  font-size: 1rem;
+  background: #faf8fb;
+}
+
+/* Market Cap min/max input fields */
+.idea-gen-filter input[type="number"] {
+  background: #faf8fb;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  padding: 0.5em 0.75em;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.idea-gen-btn-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+/* Navbar styles */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  min-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  background: var(--color-bg);
+  box-shadow: 0 2px 8px rgba(30,185,84,0.07);
+  z-index: 1000;
+}
+
+.navbar-logo .company-logo {
+  font-size: 2rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--color-text);
+}
+
+.navbar-actions .navbar-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.5em;
+  padding: 0.75em 1.5em;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(30,185,84,0.10);
+}
+
+.navbar-actions .navbar-btn:hover {
+  background: #159c43;
+}
+:root {
+  --color-bg: #fff;
+  --color-primary: #1db954; /* Spotify green */
+  --color-text: #222;
+  --color-secondary: #e8f5e9;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 5rem 2rem 2rem 2rem;
+  text-align: center;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+  background: var(--color-secondary);
+  border-radius: 1em;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 2em var(--color-primary));
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+  background: var(--color-secondary);
+  border-radius: 1em;
+  color: var(--color-text);
+  box-shadow: 0 2px 8px rgba(30,185,84,0.05);
+}
+
+button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.5em;
+  padding: 0.75em 1.5em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #159c43;
+}
+
+.read-the-docs {
+  color: #388e3c;
+}
