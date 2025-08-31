@@ -74,21 +74,27 @@ function Navbar() {
 }
 
 
+
 function IdeaGenerationMenu() {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [pages, setPages] = useState({}); // {pageNum: response}
+  const [pages, setPages] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [lastQuery, setLastQuery] = useState(null); // store last query params for pagination
+  const [lastQuery, setLastQuery] = useState(null);
   // Tracklist state
   const [tracklist, setTracklist] = useState([]);
   const [tracklistOpen, setTracklistOpen] = useState(false);
   const prevTracklistLength = useRef(0);
+  // Filter states for dropdowns
+  const [marketCapMin, setMarketCapMin] = useState('');
+  const [marketCapMax, setMarketCapMax] = useState('');
+  const [region, setRegion] = useState('');
+  const [sector, setSector] = useState('');
+  const [roic, setRoic] = useState('');
   // Add company to tracklist
   const handleAddToTracklist = useCallback((company) => {
     setTracklist((prev) => {
       if (!prev.some((c) => c.company_name === company.company_name)) {
-        // Always include exchange_ticker field
         const withTicker = {
           ...company,
           exchange_ticker: company.exchange_ticker || (company["exchange_ticker"] ?? "")
@@ -100,18 +106,15 @@ function IdeaGenerationMenu() {
       return prev;
     });
   }, []);
-
   // Remove company from tracklist
   const handleRemoveFromTracklist = (companyName) => {
     setTracklist((prev) => prev.filter((c) => c.company_name !== companyName));
   };
-
   // Submit tracklist (placeholder)
   const handleSubmitTracklist = () => {
     alert('Tracklist submitted! Companies: ' + tracklist.map(c => c.company_name).join(', '));
     setTracklistOpen(false);
   };
-
   const allFields = [
     { label: "Company Name", value: "company_name" },
     { label: "Growth Score", value: "growth_score" },
@@ -130,19 +133,19 @@ function IdeaGenerationMenu() {
     { label: "60d %", value: "60d_perc" },
     { label: "90d %", value: "90d_perc" },
   ];
+  const DEFAULT_FIELDS = [
+    'company_name',
+    'exchange_ticker',
+    'industry_classifications',
+    'geographic_locations',
+    'growth_score',
+    'mcap',
+  ];
+  const formRef = useRef();
+  const [selectedFields, setSelectedFields] = useState(DEFAULT_FIELDS);
+  const [showFieldDropdown, setShowFieldDropdown] = useState(false);
 
-const DEFAULT_FIELDS = [
-  'company_name',
-  'exchange_ticker',
-  'industry_classifications',
-  'geographic_locations',
-  'growth_score',
-  'mcap',
-];
-const formRef = useRef();
-const [selectedFields, setSelectedFields] = useState(DEFAULT_FIELDS);
-const [showFieldDropdown, setShowFieldDropdown] = useState(false);
-
+  // Fetch search results
   const fetchPage = async (data, pageNum, fields = selectedFields) => {
     setLoading(true);
     try {
@@ -160,9 +163,7 @@ const [showFieldDropdown, setShowFieldDropdown] = useState(false);
       let json = null;
       try {
         json = JSON.parse(text);
-      } catch (e) {
-        // Not JSON, fallback to text
-      }
+      } catch (e) {}
       setPages(prev => ({ ...prev, [pageNum]: json || text }));
       setResponse(json || text);
       setCurrentPage(pageNum);
@@ -173,20 +174,63 @@ const [showFieldDropdown, setShowFieldDropdown] = useState(false);
     }
   };
 
+  // Handle text submission for LLM filter extraction
+  const handleTextSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResponse(null);
+    setPages({});
+    setCurrentPage(1);
+    const form = formRef.current;
+    const userText = form.description.value;
+    if (!userText) {
+      setResponse("Please enter a description.");
+      setLoading(false);
+      return;
+    }
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/text-to-filters`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_text: userText }),
+      });
+      const data = await res.json();
+      const filters = data.filters || {};
+      console.log(filters.region);
+      
+      setMarketCapMin(filters.marketCap?.min || '');
+      setMarketCapMax(filters.marketCap?.max || '');
+      setRegion(filters.region || '');
+      setSector(filters.sector || '');
+      setRoic(filters.roic || '');
+      // Optionally auto-search:
+      // const searchBody = {
+      //   marketCap: {
+      //     min: filters.marketCap?.min || '',
+      //     max: filters.marketCap?.max || '',
+      //   },
+      //   region: filters.region || '',
+      //   sector: filters.sector || '',
+      //   roic: filters.roic || '',
+      // };
+      // setLastQuery(searchBody);
+      // fetchPage(searchBody, 1, selectedFields);
+    } catch (err) {
+      setResponse('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle manual filter form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(false);
     setResponse(null);
     setPages({});
     setCurrentPage(1);
-    const form = formRef.current;
-    const marketCapMin = form.marketCapMin.value;
-    const marketCapMax = form.marketCapMax.value;
-    const region = form.region.value;
-    const sector = form.sector.value;
-    const roic = form.roic.value;
-
-    // Check if all filters are empty
+    // Use controlled state for filter values
     const noFilters =
       (!marketCapMin && !marketCapMax) &&
       !region &&
@@ -196,12 +240,10 @@ const [showFieldDropdown, setShowFieldDropdown] = useState(false);
       setResponse("Please select at least one filter");
       return;
     }
-
     if (selectedFields.length === 0) {
       setResponse("Please select at least one column to display");
       return;
     }
-
     const data = {
       marketCap: {
         min: marketCapMin,
@@ -245,275 +287,286 @@ const [showFieldDropdown, setShowFieldDropdown] = useState(false);
     <div className="idea-gen-container">
       <h1 className="idea-gen-title">Idea Generation</h1>
       <p className="idea-gen-subtitle">
-        Discover securities by specifying your criteria
+      Discover securities by specifying your criteria
       </p>
       <div
-        style={{
-          marginBottom: "1.5rem",
-          display: "flex",
-          justifyContent: "flex-end",
-          position: "relative",
-          zIndex: 10,
-        }}
+      style={{
+        marginBottom: "1.5rem",
+        display: "flex",
+        justifyContent: "flex-end",
+        position: "relative",
+        zIndex: 10,
+      }}
       >
-        <ColumnSelector selectedFields={selectedFields} setSelectedFields={setSelectedFields} show={showFieldDropdown} setShow={setShowFieldDropdown} />
+      <ColumnSelector selectedFields={selectedFields} setSelectedFields={setSelectedFields} show={showFieldDropdown} setShow={setShowFieldDropdown} />
       </div>
       <form
-        className="idea-gen-form"
-        ref={formRef}
-        onSubmit={handleSubmit}
-        autoComplete="off"
+      className="idea-gen-form"
+      ref={formRef}
+      autoComplete="off"
       >
-        <div className="idea-gen-textarea-row">
-          <textarea
-            className="idea-gen-textarea"
-            name="description"
-            placeholder="Describe the companies that you are looking for..."
-            rows={2}
-            style={{ color: "black" }}
+      <div className="idea-gen-textarea-row" style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <textarea
+        className="idea-gen-textarea"
+        name="description"
+        placeholder="Describe the companies that you are looking for..."
+        rows={2}
+        style={{ color: "black" }}
+        defaultValue={''}
+        />
+        <button
+        type="button"
+        className="navbar-btn"
+        style={{ marginTop: 4 }}
+        onClick={handleTextSubmit}
+        disabled={loading}
+        >
+        {loading ? "Processing..." : "Text to Filters"}
+        </button>
+      </div>
+      <div className="idea-gen-or">OR</div>
+      <div className="idea-gen-filters-row">
+        <div className="idea-gen-filter">
+        <label>Market Cap (in Million $)</label>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <input
+          type="number"
+          min="0"
+          name="marketCapMin"
+          placeholder="Min"
+          style={{ color: "black", width: "80px" }}
+          value={marketCapMin}
+          onChange={e => setMarketCapMin(e.target.value)}
+          />
+          <span style={{ color: "#faf8fb" }}>-</span>
+          <input
+          type="number"
+          min="0"
+          name="marketCapMax"
+          placeholder="Max"
+          style={{ color: "black", width: "80px" }}
+          value={marketCapMax}
+          onChange={e => setMarketCapMax(e.target.value)}
           />
         </div>
-        <div className="idea-gen-or">OR</div>
-        <div className="idea-gen-filters-row">
-          <div className="idea-gen-filter">
-            <label>Market Cap (in Million $)</label>
-            <div
-              style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
-            >
-              <input
-                type="number"
-                min="0"
-                name="marketCapMin"
-                placeholder="Min"
-                style={{ color: "black", width: "80px" }}
-              />
-              <span style={{ color: "#faf8fb" }}>-</span>
-              <input
-                type="number"
-                min="0"
-                name="marketCapMax"
-                placeholder="Max"
-                style={{ color: "black", width: "80px" }}
-              />
-            </div>
-          </div>
-          <div className="idea-gen-filter">
-            <label>Geographical Region</label>
-            <RegionSelect />
-          </div>
-          <div className="idea-gen-filter">
-            <label>Primary Sector</label>
-            <SectorSelect />
-          </div>
-          <div className="idea-gen-filter">
-            <label>ROIC</label>
-            <RoicSelect />
-          </div>
         </div>
-        <div className="idea-gen-btn-row">
-          <button type="submit" className="navbar-btn" disabled={loading}>
-            {loading ? "Generating..." : "Generate Ideas"}
-          </button>
+        <div className="idea-gen-filter">
+        <label>Geographical Region</label>
+        <RegionSelect value={region} onChange={e => setRegion(e.target.value)} />
         </div>
+        <div className="idea-gen-filter">
+        <label>Primary Sector</label>
+        <SectorSelect value={sector} onChange={e => setSector(e.target.value)} />
+        </div>
+        <div className="idea-gen-filter">
+        <label>ROIC</label>
+        <RoicSelect value={roic} onChange={e => setRoic(e.target.value)} />
+        </div>
+      </div>
+      <div className="idea-gen-btn-row">
+        <button type="submit" className="navbar-btn" disabled={loading} onClick={handleSubmit}>
+        {loading ? "Generating..." : "Generate Ideas"}
+        </button>
+      </div>
       </form>
       {response && (
-        <div
-          style={{
-            marginTop: "2rem",
-            textAlign: "left",
-            maxWidth: 900,
-            marginLeft: "auto",
-            marginRight: "auto",
-            background: "#f6fff6",
-            border: "1px solid #b2dfdb",
+      <div
+        style={{
+        marginTop: "2rem",
+        textAlign: "left",
+        maxWidth: 900,
+        marginLeft: "auto",
+        marginRight: "auto",
+        background: "#f6fff6",
+        border: "1px solid #b2dfdb",
+        borderRadius: 8,
+        padding: "1.5rem",
+        color: "#222",
+        wordBreak: "break-word",
+        position: "relative",
+        }}
+      >
+        <strong>Response:</strong>
+        {typeof response === "object" &&
+        response.results &&
+        Array.isArray(response.results) ? (
+        <>
+          <div style={{ overflowX: "auto", marginTop: "1rem" }}>
+          <table
+            style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            background: "#fff",
             borderRadius: 8,
-            padding: "1.5rem",
-            color: "#222",
-            wordBreak: "break-word",
-            position: "relative",
-          }}
-        >
-          <strong>Response:</strong>
-          {typeof response === "object" &&
-          response.results &&
-          Array.isArray(response.results) ? (
-            <>
-              <div style={{ overflowX: "auto", marginTop: "1rem" }}>
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  }}
-                >
-                  <thead>
-                    <tr style={{ background: "#e0f7fa" }}>
-                      {Object.keys(response.results[0] || {}).map((col, idx) => {
-                        const field = ALL_FIELDS.find(f => f.value === col);
-                        return (
-                          <th
-                            key={col}
-                            style={{
-                              padding: "0.75rem",
-                              borderBottom: "2px solid #b2dfdb",
-                              textAlign: "left",
-                              fontWeight: 600,
-                              color: "#00796b",
-                              fontSize: "1rem",
-                            }}
-                          >
-                            {field ? field.label : col}
-                          </th>
-                        );
-                      })}
-                      {/* Extra column for plus button */}
-                      {response.results[0]?.company_name && (
-                        <th style={{ width: 40 }}></th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {response.results.map((row, i) => (
-                      <tr
-                        key={i}
-                        style={{
-                          background: i % 2 === 0 ? "#f9f9f9" : "#f1f8e9",
-                        }}
-                      >
-                        {Object.entries(row).map(([col, val], j) => (
-                          <td
-                            key={j}
-                            style={{
-                              padding: "0.75rem",
-                              borderBottom: "1px solid #e0e0e0",
-                              fontSize: "0.97rem",
-                              color: "#333",
-                              position: col === 'company_name' ? 'relative' : undefined,
-                            }}
-                          >
-                            {val}
-                            {/* Plus button for company_name */}
-                            {col === 'company_name' && (
-                              <button
-                                title="Add to Tracklist"
-                                style={{
-                                  marginLeft: 8,
-                                  background: 'none',
-                                  border: 'none',
-                                  borderRadius: 0,
-                                  width: 'auto',
-                                  height: 'auto',
-                                  cursor: 'pointer',
-                                  color: '#00796b',
-                                  fontWeight: 'bold',
-                                  fontSize: 18,
-                                  verticalAlign: 'middle',
-                                  boxShadow: 'none',
-                                  padding: 0,
-                                }}
-                                onClick={() => handleAddToTracklist(row)}
-                                disabled={tracklist.some(c => c.company_name === row.company_name)}
-                              >
-                                +
-                              </button>
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            }}
+          >
+            <thead>
+            <tr style={{ background: "#e0f7fa" }}>
+              {Object.keys(response.results[0] || {}).map((col, idx) => {
+              const field = ALL_FIELDS.find(f => f.value === col);
+              return (
+                <th
+                key={col}
                 style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: "1rem",
-                  marginTop: "1.5rem",
+                  padding: "0.75rem",
+                  borderBottom: "2px solid #b2dfdb",
+                  textAlign: "left",
+                  fontWeight: 600,
+                  color: "#00796b",
+                  fontSize: "1rem",
                 }}
+                >
+                {field ? field.label : col}
+                </th>
+              );
+              })}
+              {/* Extra column for plus button */}
+              {response.results[0]?.company_name && (
+              <th style={{ width: 40 }}></th>
+              )}
+            </tr>
+            </thead>
+            <tbody>
+            {response.results.map((row, i) => (
+              <tr
+              key={i}
+              style={{
+                background: i % 2 === 0 ? "#f9f9f9" : "#f1f8e9",
+              }}
               >
-                <button
-                  className="navbar-btn"
-                  onClick={handleBack}
-                  disabled={loading || currentPage === 1}
-                  style={{ opacity: loading || currentPage === 1 ? 0.5 : 1 }}
+              {Object.entries(row).map(([col, val], j) => (
+                <td
+                key={j}
+                style={{
+                  padding: "0.75rem",
+                  borderBottom: "1px solid #e0e0e0",
+                  fontSize: "0.97rem",
+                  color: "#333",
+                  position: col === 'company_name' ? 'relative' : undefined,
+                }}
                 >
-                  Back
-                </button>
-                <span
+                {val}
+                {/* Plus button for company_name */}
+                {col === 'company_name' && (
+                  <button
+                  title="Add to Tracklist"
                   style={{
-                    alignSelf: "center",
-                    color: "#00796b",
-                    fontWeight: 500,
-                  }}
-                >
-                  Page {currentPage}
-                </span>
-                <button
-                  className="navbar-btn"
-                  onClick={handleNext}
-                  disabled={loading || response.results.length < 10}
-                  style={{
-                    opacity: loading || response.results.length < 10 ? 0.5 : 1,
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-              {/* Tracklist Side Menu (moved to separate component) */}
-              <TracklistMenu
-                tracklistOpen={tracklistOpen}
-                setTracklistOpen={setTracklistOpen}
-                tracklist={tracklist}
-                handleRemoveFromTracklist={handleRemoveFromTracklist}
-                handleSubmitTracklist={handleSubmitTracklist}
-              />
-              {/* Floating button to open tracklist if closed and has items */}
-              {tracklist.length > 0 && (
-                <button
-                  style={{
-                    position: 'fixed',
-                    right: 20,
-                    bottom: 30,
-                    zIndex: 1100,
+                    marginLeft: 8,
                     background: 'none',
-                    color: '#00796b',
                     border: 'none',
                     borderRadius: 0,
                     width: 'auto',
                     height: 'auto',
-                    fontSize: 36,
-                    boxShadow: 'none',
                     cursor: 'pointer',
+                    color: '#00796b',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                    verticalAlign: 'middle',
+                    boxShadow: 'none',
                     padding: 0,
                   }}
-                  title="Open Tracklist"
-                  onClick={() => setTracklistOpen(true)}
-                  aria-label="Open Tracklist"
-                >
-                  ★
-                </button>
-              )}
-            </>
-          ) : (
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                margin: 0,
-              }}
-            >
-              {typeof response === "string"
-                ? response
-                : JSON.stringify(response, null, 2)}
-            </pre>
+                  onClick={() => handleAddToTracklist(row)}
+                  disabled={tracklist.some(c => c.company_name === row.company_name)}
+                  >
+                  +
+                  </button>
+                )}
+                </td>
+              ))}
+              </tr>
+            ))}
+            </tbody>
+          </table>
+          </div>
+          <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "1rem",
+            marginTop: "1.5rem",
+          }}
+          >
+          <button
+            className="navbar-btn"
+            onClick={handleBack}
+            disabled={loading || currentPage === 1}
+            style={{ opacity: loading || currentPage === 1 ? 0.5 : 1 }}
+          >
+            Back
+          </button>
+          <span
+            style={{
+            alignSelf: "center",
+            color: "#00796b",
+            fontWeight: 500,
+            }}
+          >
+            Page {currentPage}
+          </span>
+          <button
+            className="navbar-btn"
+            onClick={handleNext}
+            disabled={loading || response.results.length < 10}
+            style={{
+            opacity: loading || response.results.length < 10 ? 0.5 : 1,
+            }}
+          >
+            Next
+          </button>
+          </div>
+          {/* Tracklist Side Menu (moved to separate component) */}
+          <TracklistMenu
+          tracklistOpen={tracklistOpen}
+          setTracklistOpen={setTracklistOpen}
+          tracklist={tracklist}
+          handleRemoveFromTracklist={handleRemoveFromTracklist}
+          handleSubmitTracklist={handleSubmitTracklist}
+          />
+          {/* Floating button to open tracklist if closed and has items */}
+          {tracklist.length > 0 && (
+          <button
+            style={{
+            position: 'fixed',
+            right: 20,
+            bottom: 30,
+            zIndex: 1100,
+            background: 'none',
+            color: '#00796b',
+            border: 'none',
+            borderRadius: 0,
+            width: 'auto',
+            height: 'auto',
+            fontSize: 36,
+            boxShadow: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            }}
+            title="Open Tracklist"
+            onClick={() => setTracklistOpen(true)}
+            aria-label="Open Tracklist"
+          >
+            ★
+          </button>
           )}
-        </div>
+        </>
+        ) : (
+        <pre
+          style={{
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          margin: 0,
+          }}
+        >
+          {typeof response === "string"
+          ? response
+          : JSON.stringify(response, null, 2)}
+        </pre>
+        )}
+      </div>
       )}
     </div>
-  );
+    );
 }
 
 function App() {
