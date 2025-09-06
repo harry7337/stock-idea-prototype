@@ -1,8 +1,8 @@
 
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import TracklistMenu from "./TracklistMenu";
-import { ALL_FIELDS } from "./fields";
+import { ALL_FIELDS, NUMERIC_FIELDS, FIELD } from "./fields";
 import reactLogo from './assets/react.svg';
 import viteLogo from '/vite.svg';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
@@ -10,70 +10,10 @@ import './App.css';
 import ColumnSelector from "./ColumnSelector";
 import { RegionSelect, SectorSelect, RoicSelect } from "./FilterSelects";
 import DetailedAnalysis from "./DetailedAnalysis";
+import ResultsTable from "./ResultsTable";
+import { fetchSearchResults, textToFilters } from "./services/apiService";
+import Navbar from "./components/Navbar";
 import { useLocation } from 'react-router-dom';
-
-function Navbar() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isIdeaGen = location.pathname === '/idea-generation';
-  const isDetailedAnalysis = location.pathname === '/detailed-analysis';
-  return (
-    <nav className="navbar">
-      <div className="navbar-logo" style={{ paddingLeft: '2rem' }}>
-        <img
-          src="/logo.png"
-          alt="Stock Idea Logo"
-          className="company-logo"
-          style={{ height: '60px' }}
-        />
-      </div>
-      <div className="navbar-actions" style={{ paddingRight: '2rem', display: 'flex', gap: '1.5rem' }}>
-        <button
-          className="navbar-btn"
-          style={{
-            background: 'none',
-            color: '#00796b',
-            border: 'none', // Remove all borders
-            outline: 'none', // Remove outline
-            borderRadius: 0,
-            fontWeight: 500,
-            fontSize: '1rem',
-            padding: '0.6rem 1.3rem 0.3rem 1.3rem',
-            boxShadow: 'none',
-            borderBottom: isIdeaGen ? '2.5px solid #000' : '2.5px solid transparent',
-            transition: 'border-bottom 0.2s',
-            cursor: 'pointer',
-          }}
-          onClick={() => navigate('/idea-generation')}
-        >
-          Idea Generation
-        </button>
-        <button
-          className="navbar-btn"
-          style={{
-            background: 'none',
-            color: '#00796b',
-            border: 'none', // Remove all borders
-            outline: 'none', // Remove outline
-            borderRadius: 0,
-            fontWeight: 500,
-            fontSize: '1rem',
-            padding: '0.6rem 1.3rem 0.3rem 1.3rem',
-            boxShadow: 'none',
-            borderBottom: isDetailedAnalysis ? '2.5px solid #000' : '2.5px solid transparent',
-            transition: 'border-bottom 0.2s',
-            cursor: 'pointer',
-          }}
-          onClick={() => navigate('/detailed-analysis')}
-        >
-          Unstructured Analysis
-        </button>
-      </div>
-    </nav>
-  );
-}
-
-
 
 function IdeaGenerationMenu() {
   const [response, setResponse] = useState(null);
@@ -91,6 +31,9 @@ function IdeaGenerationMenu() {
   const [region, setRegion] = useState('');
   const [sector, setSector] = useState('');
   const [roic, setRoic] = useState('');
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  
   // Add company to tracklist
   const handleAddToTracklist = useCallback((company) => {
     setTracklist((prev) => {
@@ -115,24 +58,7 @@ function IdeaGenerationMenu() {
     alert('Tracklist submitted! Companies: ' + tracklist.map(c => c.company_name).join(', '));
     setTracklistOpen(false);
   };
-  const allFields = [
-    { label: "Company Name", value: "company_name" },
-    { label: "Growth Score", value: "growth_score" },
-    { label: "Exchange Ticker", value: "exchange_ticker" },
-    { label: "Industry", value: "industry_classifications" },
-    { label: "Region", value: "geographic_locations" },
-    { label: "Market Cap", value: "mcap" },
-    { label: "Latest Q", value: "latest_q" },
-    { label: "Q+1", value: "q_plus_1" },
-    { label: "FY+1", value: "fy_plus_1" },
-    { label: "FY+2", value: "fy_plus_2" },
-    { label: "Surprise %", value: "surprice_perc" },
-    { label: "Revision", value: "revision" },
-    { label: "15d %", value: "15d_perc" },
-    { label: "30d %", value: "30d_perc" },
-    { label: "60d %", value: "60d_perc" },
-    { label: "90d %", value: "90d_perc" },
-  ];
+  
   const DEFAULT_FIELDS = [
     'company_name',
     'exchange_ticker',
@@ -144,28 +70,56 @@ function IdeaGenerationMenu() {
   const formRef = useRef();
   const [selectedFields, setSelectedFields] = useState(DEFAULT_FIELDS);
   const [showFieldDropdown, setShowFieldDropdown] = useState(false);
+  const columnSelectorRef = useRef(null);
+  // Options menu for adding extra numeric filters
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const optionsMenuRef = useRef(null);
+  const [extraNumericFilters, setExtraNumericFilters] = useState({}); // { field: { min, max } }
+
+  // Close popovers (ColumnSelector and Options menu) when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const clickedOutsideColumnSelector =
+        showFieldDropdown && columnSelectorRef.current && !columnSelectorRef.current.contains(e.target);
+      const clickedOutsideOptions =
+        showOptionsMenu && optionsMenuRef.current && !optionsMenuRef.current.contains(e.target);
+      if (clickedOutsideColumnSelector) setShowFieldDropdown(false);
+      if (clickedOutsideOptions) setShowOptionsMenu(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFieldDropdown, showOptionsMenu]);
+
+  // Toggle extra numeric filter from menu
+  const toggleExtraNumericField = (field) => {
+    setExtraNumericFilters((prev) => {
+      const next = { ...prev };
+      if (next[field]) {
+        delete next[field];
+      } else {
+        next[field] = { min: '', max: '' };
+      }
+      return next;
+    });
+    setSelectedFields((prev) =>
+      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
+    );
+  };
+
+  const handleExtraNumericChange = (field, bound, value) => {
+    setExtraNumericFilters((prev) => ({
+      ...prev,
+      [field]: { ...(prev[field] || { min: '', max: '' }), [bound]: value },
+    }));
+  };
 
   // Fetch search results
   const fetchPage = async (data, pageNum, fields = selectedFields) => {
     setLoading(true);
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const fieldsParam = fields.join(',');
-      const res = await fetch(
-        `${apiBase}/search?fields=${fieldsParam}&limit=10&offset=${(pageNum - 1) * 10}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        }
-      );
-      const text = await res.text();
-      let json = null;
-      try {
-        json = JSON.parse(text);
-      } catch (e) {}
-      setPages(prev => ({ ...prev, [pageNum]: json || text }));
-      setResponse(json || text);
+      const result = await fetchSearchResults(data, pageNum, fields);
+      setPages(prev => ({ ...prev, [pageNum]: result }));
+      setResponse(result);
       setCurrentPage(pageNum);
     } catch (err) {
       setResponse('Error: ' + err.message);
@@ -189,33 +143,13 @@ function IdeaGenerationMenu() {
       return;
     }
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiBase}/text-to-filters`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_text: userText }),
-      });
-      const data = await res.json();
-      const filters = data.filters || {};
-      console.log(filters.region);
+      const filters = await textToFilters(userText);
       
       setMarketCapMin(filters.marketCap?.min || '');
       setMarketCapMax(filters.marketCap?.max || '');
       setRegion(filters.region || '');
       setSector(filters.sector || '');
       setRoic(filters.roic || '');
-      // Optionally auto-search:
-      // const searchBody = {
-      //   marketCap: {
-      //     min: filters.marketCap?.min || '',
-      //     max: filters.marketCap?.max || '',
-      //   },
-      //   region: filters.region || '',
-      //   sector: filters.sector || '',
-      //   roic: filters.roic || '',
-      // };
-      // setLastQuery(searchBody);
-      // fetchPage(searchBody, 1, selectedFields);
     } catch (err) {
       setResponse('Error: ' + err.message);
     } finally {
@@ -235,7 +169,8 @@ function IdeaGenerationMenu() {
       (!marketCapMin && !marketCapMax) &&
       !region &&
       !sector &&
-      !roic;
+      !roic &&
+      Object.values(extraNumericFilters).every((v) => (v?.min ?? '') === '' && (v?.max ?? '') === '');
     if (noFilters) {
       setResponse("Please select at least one filter");
       return;
@@ -244,6 +179,9 @@ function IdeaGenerationMenu() {
       setResponse("Please select at least one column to display");
       return;
     }
+    const numericFilters = Object.fromEntries(
+      Object.entries(extraNumericFilters).filter(([, rng]) => (rng.min ?? '') !== '' || (rng.max ?? '') !== '')
+    );
     const data = {
       marketCap: {
         min: marketCapMin,
@@ -252,7 +190,10 @@ function IdeaGenerationMenu() {
       region,
       sector,
       roic,
+      numericFilters,
     };
+    console.log(data);
+    
     setLastQuery(data);
     fetchPage(data, 1, selectedFields);
   };
@@ -284,289 +225,316 @@ function IdeaGenerationMenu() {
   };
 
   return (
-    <div className="idea-gen-container">
+    <div className="idea-gen-container" style={{ position: "relative" }}>
       <h1 className="idea-gen-title">Idea Generation</h1>
       <p className="idea-gen-subtitle">
-      Discover securities by specifying your criteria
+        Discover securities by specifying your criteria
       </p>
       <div
-      style={{
-        marginBottom: "1.5rem",
-        display: "flex",
-        justifyContent: "flex-end",
-        position: "relative",
-        zIndex: 10,
-      }}
-      >
-      <ColumnSelector selectedFields={selectedFields} setSelectedFields={setSelectedFields} show={showFieldDropdown} setShow={setShowFieldDropdown} />
-      </div>
-      <form
-      className="idea-gen-form"
-      ref={formRef}
-      autoComplete="off"
-      >
-      <div className="idea-gen-textarea-row" style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <textarea
-        className="idea-gen-textarea"
-        name="description"
-        placeholder="Describe the companies that you are looking for..."
-        rows={2}
-        style={{ color: "black" }}
-        defaultValue={''}
-        />
-        <button
-        type="button"
-        className="navbar-btn"
-        style={{ marginTop: 4 }}
-        onClick={handleTextSubmit}
-        disabled={loading}
-        >
-        {loading ? "Processing..." : "Text to Filters"}
-        </button>
-      </div>
-      <div className="idea-gen-or">OR</div>
-      <div className="idea-gen-filters-row">
-        <div className="idea-gen-filter">
-        <label>Market Cap (in Million $)</label>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <input
-          type="number"
-          min="0"
-          name="marketCapMin"
-          placeholder="Min"
-          style={{ color: "black", width: "80px" }}
-          value={marketCapMin}
-          onChange={e => setMarketCapMin(e.target.value)}
-          />
-          <span style={{ color: "#faf8fb" }}>-</span>
-          <input
-          type="number"
-          min="0"
-          name="marketCapMax"
-          placeholder="Max"
-          style={{ color: "black", width: "80px" }}
-          value={marketCapMax}
-          onChange={e => setMarketCapMax(e.target.value)}
-          />
-        </div>
-        </div>
-        <div className="idea-gen-filter">
-        <label>Geographical Region</label>
-        <RegionSelect value={region} onChange={e => setRegion(e.target.value)} />
-        </div>
-        <div className="idea-gen-filter">
-        <label>Primary Sector</label>
-        <SectorSelect value={sector} onChange={e => setSector(e.target.value)} />
-        </div>
-        <div className="idea-gen-filter">
-        <label>ROIC</label>
-        <RoicSelect value={roic} onChange={e => setRoic(e.target.value)} />
-        </div>
-      </div>
-      <div className="idea-gen-btn-row">
-        <button type="submit" className="navbar-btn" disabled={loading} onClick={handleSubmit}>
-        {loading ? "Generating..." : "Generate Ideas"}
-        </button>
-      </div>
-      </form>
-      {response && (
-      <div
+        ref={columnSelectorRef}
         style={{
-        marginTop: "2rem",
-        textAlign: "left",
-        maxWidth: 900,
-        marginLeft: "auto",
-        marginRight: "auto",
-        background: "#f6fff6",
-        border: "1px solid #b2dfdb",
-        borderRadius: 8,
-        padding: "1.5rem",
-        color: "#222",
-        wordBreak: "break-word",
-        position: "relative",
+          marginBottom: "1.5rem",
+          display: "flex",
+          justifyContent: "flex-end",
+          position: "relative",
+          zIndex: 10,
         }}
       >
-        <strong>Response:</strong>
-        {typeof response === "object" &&
-        response.results &&
-        Array.isArray(response.results) ? (
-        <>
-          <div style={{ overflowX: "auto", marginTop: "1rem" }}>
-          <table
-            style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#fff",
-            borderRadius: 8,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            }}
-          >
-            <thead>
-            <tr style={{ background: "#e0f7fa" }}>
-              {Object.keys(response.results[0] || {}).map((col, idx) => {
-              const field = ALL_FIELDS.find(f => f.value === col);
-              return (
-                <th
-                key={col}
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "2px solid #b2dfdb",
-                  textAlign: "left",
-                  fontWeight: 600,
-                  color: "#00796b",
-                  fontSize: "1rem",
-                }}
-                >
-                {field ? field.label : col}
-                </th>
-              );
-              })}
-              {/* Extra column for plus button */}
-              {response.results[0]?.company_name && (
-              <th style={{ width: 40 }}></th>
-              )}
-            </tr>
-            </thead>
-            <tbody>
-            {response.results.map((row, i) => (
-              <tr
-              key={i}
-              style={{
-                background: i % 2 === 0 ? "#f9f9f9" : "#f1f8e9",
-              }}
-              >
-              {Object.entries(row).map(([col, val], j) => (
-                <td
-                key={j}
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid #e0e0e0",
-                  fontSize: "0.97rem",
-                  color: "#333",
-                  position: col === 'company_name' ? 'relative' : undefined,
-                }}
-                >
-                {val}
-                {/* Plus button for company_name */}
-                {col === 'company_name' && (
-                  <button
-                  title="Add to Tracklist"
-                  style={{
-                    marginLeft: 8,
-                    background: 'none',
-                    border: 'none',
-                    borderRadius: 0,
-                    width: 'auto',
-                    height: 'auto',
-                    cursor: 'pointer',
-                    color: '#00796b',
-                    fontWeight: 'bold',
-                    fontSize: 18,
-                    verticalAlign: 'middle',
-                    boxShadow: 'none',
-                    padding: 0,
-                  }}
-                  onClick={() => handleAddToTracklist(row)}
-                  disabled={tracklist.some(c => c.company_name === row.company_name)}
-                  >
-                  +
-                  </button>
-                )}
-                </td>
-              ))}
-              </tr>
-            ))}
-            </tbody>
-          </table>
-          </div>
-          <div
+        <div
           style={{
             display: "flex",
-            justifyContent: "center",
-            gap: "1rem",
-            marginTop: "1.5rem",
-          }}
-          >
-          <button
-            className="navbar-btn"
-            onClick={handleBack}
-            disabled={loading || currentPage === 1}
-            style={{ opacity: loading || currentPage === 1 ? 0.5 : 1 }}
-          >
-            Back
-          </button>
-          <span
-            style={{
-            alignSelf: "center",
-            color: "#00796b",
-            fontWeight: 500,
-            }}
-          >
-            Page {currentPage}
-          </span>
-          <button
-            className="navbar-btn"
-            onClick={handleNext}
-            disabled={loading || response.results.length < 10}
-            style={{
-            opacity: loading || response.results.length < 10 ? 0.5 : 1,
-            }}
-          >
-            Next
-          </button>
-          </div>
-          {/* Tracklist Side Menu (moved to separate component) */}
-          <TracklistMenu
-          tracklistOpen={tracklistOpen}
-          setTracklistOpen={setTracklistOpen}
-          tracklist={tracklist}
-          handleRemoveFromTracklist={handleRemoveFromTracklist}
-          handleSubmitTracklist={handleSubmitTracklist}
-          />
-          {/* Floating button to open tracklist if closed and has items */}
-          {tracklist.length > 0 && (
-          <button
-            style={{
-            position: 'fixed',
-            right: 20,
-            bottom: 30,
-            zIndex: 1100,
-            background: 'none',
-            color: '#00796b',
-            border: 'none',
-            borderRadius: 0,
-            width: 'auto',
-            height: 'auto',
-            fontSize: 36,
-            boxShadow: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            }}
-            title="Open Tracklist"
-            onClick={() => setTracklistOpen(true)}
-            aria-label="Open Tracklist"
-          >
-            ★
-          </button>
-          )}
-        </>
-        ) : (
-        <pre
-          style={{
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          margin: 0,
+            gap: 8,
+            alignItems: "center",
+            position: "relative",
           }}
         >
-          {typeof response === "string"
-          ? response
-          : JSON.stringify(response, null, 2)}
-        </pre>
-        )}
+          <ColumnSelector
+            selectedFields={selectedFields}
+            setSelectedFields={setSelectedFields}
+            show={showFieldDropdown}
+            setShow={setShowFieldDropdown}
+          />
+          {/* 3-dots options button moved to bottom-right of container */}
+        </div>
       </div>
+      <form className="idea-gen-form" ref={formRef} autoComplete="off">
+        <div
+          className="idea-gen-textarea-row"
+          style={{ display: "flex", alignItems: "flex-start", gap: 12 }}
+        >
+          <textarea
+            className="idea-gen-textarea"
+            name="description"
+            placeholder="Describe the companies that you are looking for..."
+            rows={2}
+            style={{ color: "black" }}
+            defaultValue={""}
+          />
+          <button
+            type="button"
+            className="navbar-btn"
+            style={{ marginTop: 4 }}
+            onClick={handleTextSubmit}
+            disabled={loading}
+          >
+            {loading ? "Processing..." : "Text to Filters"}
+          </button>
+        </div>
+        <div className="idea-gen-or">OR</div>
+        <div className="idea-gen-filters-row">
+          <div className="idea-gen-filter">
+            <label>Market Cap (in Million $)</label>
+            <div
+              style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
+            >
+              <input
+                type="number"
+                min="0"
+                name="marketCapMin"
+                placeholder="Min"
+                style={{ color: "black", width: "80px" }}
+                value={marketCapMin}
+                onChange={(e) => setMarketCapMin(e.target.value)}
+              />
+              <span style={{ color: "#faf8fb" }}>-</span>
+              <input
+                type="number"
+                min="0"
+                name="marketCapMax"
+                placeholder="Max"
+                style={{ color: "black", width: "80px" }}
+                value={marketCapMax}
+                onChange={(e) => setMarketCapMax(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="idea-gen-filter">
+            <label>Geographical Region</label>
+            <RegionSelect
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+            />
+          </div>
+          <div className="idea-gen-filter">
+            <label>Primary Sector</label>
+            <SectorSelect
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+            />
+          </div>
+          <div className="idea-gen-filter">
+            <label>ROIC</label>
+            <RoicSelect
+              value={roic}
+              onChange={(e) => setRoic(e.target.value)}
+            />
+          </div>
+          {/* Dynamically added numeric filters */}
+          {Object.keys(extraNumericFilters).map((field) => {
+            const meta = ALL_FIELDS.find((f) => f.value === field);
+            const label = meta ? meta.label : field;
+            const range = extraNumericFilters[field] || { min: "", max: "" };
+            return (
+              <div className="idea-gen-filter" key={field}>
+                <label>{label}</label>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    alignItems: "center",
+                  }}
+                >
+                  <input
+                    type="number"
+                    name={`${field}-min`}
+                    placeholder="Min"
+                    style={{ color: "black", width: "80px" }}
+                    value={range.min}
+                    onChange={(e) =>
+                      handleExtraNumericChange(field, "min", e.target.value)
+                    }
+                  />
+                  <span style={{ color: "#faf8fb" }}>-</span>
+                  <input
+                    type="number"
+                    name={`${field}-max`}
+                    placeholder="Max"
+                    style={{ color: "black", width: "80px" }}
+                    value={range.max}
+                    onChange={(e) =>
+                      handleExtraNumericChange(field, "max", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="idea-gen-btn-row" style={{ display: "flex", justifyContent: "center", alignItems: "center", position: "relative" }}>
+          <button
+            type="submit"
+            className="navbar-btn"
+            disabled={loading}
+            onClick={handleSubmit}
+          >
+            {loading ? "Generating..." : "Generate Ideas"}
+          </button>
+          {/* Options button positioned absolutely on the right */}
+          <div
+            ref={optionsMenuRef}
+            style={{ position: "absolute", right: 0 }}
+          >
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={showOptionsMenu}
+              className="navbar-btn"
+              onClick={() => setShowOptionsMenu((v) => !v)}
+              title="More filters"
+              style={{
+                background: "none",
+                color: "#00796b",
+                border: "none",
+                outline: "none",
+                borderRadius: 0,
+                fontWeight: 600,
+                fontSize: "1.6rem",
+                padding: "0.2rem 0.6rem",
+                boxShadow: "none",
+                cursor: "pointer",
+              }}
+            >
+              ⋯
+            </button>
+            {showOptionsMenu && (
+              <div
+                role="menu"
+                style={{
+                  position: "absolute",
+                  bottom: "120%",
+                  right: 0,
+                  minWidth: 260,
+                  background: "#ffffff",
+                  border: "1px solid #b2dfdb",
+                  borderRadius: 8,
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                  padding: "0.5rem",
+                  zIndex: 1200,
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 600,
+                    color: "#00796b",
+                    fontSize: "0.95rem",
+                    padding: "0.25rem 0.5rem 0.5rem 0.5rem",
+                  }}
+                >
+                  Add numeric filters
+                </div>
+                <ul
+                  style={{
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    maxHeight: 240,
+                    overflowY: "auto",
+                  }}
+                >
+                  {NUMERIC_FIELDS.map((field) => {
+                    const label = field.label;
+                    const alreadyInForm = field.value === "mcap"; // Market Cap exists already
+                    const disabled = alreadyInForm;
+                    const checked = extraNumericFilters[field.value];
+                    return (
+                      <li key={field.value} style={{ padding: "0.25rem 0.5rem" }}>
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            color: disabled ? "#9e9e9e" : "#004d40",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            disabled={disabled}
+                            checked={Boolean(checked)}
+                            onChange={() => toggleExtraNumericField(field.value)}
+                          />
+                          <span>{label}</span>
+                          {disabled && (
+                            <span style={{ fontSize: "0.8rem", color: "#9e9e9e" }}>
+                              {alreadyInForm ? "(already in form)" : "(not numeric)"}
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </form>
+      {response && (
+        <div
+          style={{
+            marginTop: "2rem",
+            textAlign: "left",
+            maxWidth: 900,
+            marginLeft: "auto",
+            marginRight: "auto",
+            background: "#f6fff6",
+            border: "1px solid #b2dfdb",
+            borderRadius: 8,
+            padding: "1.5rem",
+            color: "#222",
+            wordBreak: "break-word",
+            position: "relative",
+          }}
+        >
+          <strong>Response:</strong>
+          {typeof response === "object" &&
+          response.results &&
+          Array.isArray(response.results) ? (
+            <>
+              <ResultsTable
+                response={response}
+                sortConfig={sortConfig}
+                setSortConfig={setSortConfig}
+                loading={loading}
+                currentPage={currentPage}
+                handleBack={handleBack}
+                handleNext={handleNext}
+                handleAddToTracklist={handleAddToTracklist}
+                tracklist={tracklist}
+                tracklistOpen={tracklistOpen}
+                setTracklistOpen={setTracklistOpen}
+                handleRemoveFromTracklist={handleRemoveFromTracklist}
+                handleSubmitTracklist={handleSubmitTracklist}
+              />
+            </>
+          ) : (
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                margin: 0,
+              }}
+            >
+              {typeof response === "string"
+                ? response
+                : JSON.stringify(response, null, 2)}
+            </pre>
+          )}
+        </div>
       )}
     </div>
-    );
+  );
+
 }
 
 function App() {
