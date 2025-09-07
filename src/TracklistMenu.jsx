@@ -14,7 +14,7 @@ export default function TracklistMenu({
     const tickers = tracklist.map(c => c.exchange_ticker);
     try {
       const apiBase =
-        import.meta.env.VITE_API_BASE_URL || " http://localhost:8000";
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
       const res = await fetch(`${apiBase}/analyze-companies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,6 +30,10 @@ export default function TracklistMenu({
       setTimeout(() => setNotification(null), 3000);
     }
   };
+
+  // Determine if this is the side-by-side layout (always open) or the sliding panel
+  const isSideBySide = tracklistOpen === true;
+  
   return (
     <>
       {notification && (
@@ -53,32 +57,40 @@ export default function TracklistMenu({
       )}
       <div
         style={{
-          position: 'fixed',
-          top: 0,
-          right: tracklistOpen ? 0 : '-350px',
+          // Use different positioning based on layout
+          position: isSideBySide ? 'static' : 'fixed',
+          top: isSideBySide ? 'auto' : 0,
+          right: isSideBySide ? 'auto' : (tracklistOpen ? 0 : '-350px'),
           width: 320,
-          height: '100vh',
+          minWidth: 320,
+          maxWidth: 320,
+          height: isSideBySide ? 'fit-content' : '100vh',
+          maxHeight: isSideBySide ? '80vh' : 'none',
           background: '#fff',
-          boxShadow: '0 0 16px rgba(0,0,0,0.13)',
-          borderLeft: '1px solid #b2dfdb',
-          zIndex: 1000,
-          transition: 'right 0.3s',
+          boxShadow: isSideBySide ? 'none' : '0 0 16px rgba(0,0,0,0.13)',
+          border: isSideBySide ? '1px solid #b2dfdb' : 'none',
+          borderLeft: isSideBySide ? '1px solid #b2dfdb' : '1px solid #b2dfdb',
+          borderRadius: isSideBySide ? 8 : 0,
+          zIndex: isSideBySide ? 'auto' : 1000,
+          transition: isSideBySide ? 'none' : 'right 0.3s',
           padding: '1.5rem 1.2rem 1.2rem 1.2rem',
           display: 'flex',
           flexDirection: 'column',
-          maxWidth: '100vw',
+          flexShrink: 0,
           boxSizing: 'border-box',
         }}
       >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h3 style={{ margin: 0, color: '#00796b' }}>Tracklist</h3>
-        <button
-          style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#00796b' }}
-          onClick={() => setTracklistOpen(false)}
-          title="Close"
-        >
-          ×
-        </button>
+        {!isSideBySide && (
+          <button
+            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#00796b' }}
+            onClick={() => setTracklistOpen(false)}
+            title="Close"
+          >
+            ×
+          </button>
+        )}
       </div>
       <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, minHeight: 0 }}>
         {tracklist.length === 0 ? (

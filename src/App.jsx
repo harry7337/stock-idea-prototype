@@ -479,59 +479,73 @@ function IdeaGenerationMenu() {
           </div>
         </div>
       </form>
-      {response && (
-        <div
-          style={{
-            marginTop: "2rem",
-            textAlign: "left",
-            maxWidth: 900,
-            marginLeft: "auto",
-            marginRight: "auto",
-            background: "#f6fff6",
-            border: "1px solid #b2dfdb",
-            borderRadius: 8,
-            padding: "1.5rem",
-            color: "#222",
-            wordBreak: "break-word",
-            position: "relative",
-          }}
-        >
-          <strong>Response:</strong>
-          {typeof response === "object" &&
-          response.results &&
-          Array.isArray(response.results) ? (
-            <>
-              <ResultsTable
-                response={response}
-                sortConfig={sortConfig}
-                setSortConfig={setSortConfig}
-                loading={loading}
-                currentPage={currentPage}
-                handleBack={handleBack}
-                handleNext={handleNext}
-                handleAddToTracklist={handleAddToTracklist}
-                tracklist={tracklist}
-                tracklistOpen={tracklistOpen}
-                setTracklistOpen={setTracklistOpen}
-                handleRemoveFromTracklist={handleRemoveFromTracklist}
-                handleSubmitTracklist={handleSubmitTracklist}
-              />
-            </>
-          ) : (
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                margin: 0,
-              }}
-            >
-              {typeof response === "string"
-                ? response
-                : JSON.stringify(response, null, 2)}
-            </pre>
-          )}
-        </div>
-      )}
+      
+      {/* Container for side-by-side layout */}
+      <div style={{ display: "flex", gap: "1.5rem", marginTop: "2rem", alignItems: "flex-start", maxWidth: "100%", overflow: "hidden", minHeight: 0 }}>
+        {/* Response section */}
+        {response && (
+          <div
+            style={{
+              width: "calc(100% - 350px)", // Fixed width accounting for TracklistMenu (320px) + gap (1.5rem)
+              minWidth: 400, // Minimum width to ensure table remains usable
+              maxWidth: "calc(100% - 350px)",
+              textAlign: "left",
+              background: "#f6fff6",
+              border: "1px solid #b2dfdb",
+              borderRadius: 8,
+              padding: "1.5rem",
+              color: "#222",
+              wordBreak: "break-word",
+              position: "relative",
+              overflow: "hidden", // Contain any overflow
+            }}
+          >
+            <strong>Response:</strong>
+            {typeof response === "object" &&
+            response.results &&
+            Array.isArray(response.results) ? (
+              <>
+                <ResultsTable
+                  response={response}
+                  sortConfig={sortConfig}
+                  setSortConfig={setSortConfig}
+                  loading={loading}
+                  currentPage={currentPage}
+                  handleBack={handleBack}
+                  handleNext={handleNext}
+                  handleAddToTracklist={handleAddToTracklist}
+                  tracklist={tracklist}
+                  tracklistOpen={tracklistOpen}
+                  setTracklistOpen={setTracklistOpen}
+                  handleRemoveFromTracklist={handleRemoveFromTracklist}
+                  handleSubmitTracklist={handleSubmitTracklist}
+                />
+              </>
+            ) : (
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  margin: 0,
+                }}
+              >
+                {typeof response === "string"
+                  ? response
+                  : JSON.stringify(response, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+        
+        {/* Tracklist section - using the actual TracklistMenu component */}
+        {response && (<TracklistMenu
+          tracklistOpen={true} // Always visible in side-by-side layout
+          setTracklistOpen={setTracklistOpen}
+          tracklist={tracklist}
+          handleRemoveFromTracklist={handleRemoveFromTracklist}
+          handleSubmitTracklist={handleSubmitTracklist}
+        />)}
+      </div>
     </div>
   );
 

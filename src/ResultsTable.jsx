@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { ALL_FIELDS, NUMERIC_FIELDS } from "./fields";
-import TracklistMenu from "./TracklistMenu";
 
 function ResultsTable({
   response,
@@ -63,7 +62,7 @@ function ResultsTable({
   if (!response) return null;
 
   return (
-    <div style={{ marginTop: "1rem", maxWidth: "100%" }}>
+    <div style={{ marginTop: "1rem", maxWidth: "100%", minWidth: 0 }}>
       <div
         style={{
           fontSize: "0.95rem",
@@ -83,7 +82,7 @@ function ResultsTable({
           ⇄
         </span>
       </div>
-      <div style={{ overflowX: "auto" }}>
+      <div style={{ overflowX: "auto", width: "100%" }}>
         <table
           style={{
             minWidth: "900px",
@@ -265,40 +264,6 @@ function ResultsTable({
           Next
         </button>
       </div>
-      {/* Tracklist Side Menu (moved to separate component) */}
-      <TracklistMenu
-        tracklistOpen={tracklistOpen}
-        setTracklistOpen={setTracklistOpen}
-        tracklist={tracklist}
-        handleRemoveFromTracklist={handleRemoveFromTracklist}
-        handleSubmitTracklist={handleSubmitTracklist}
-      />
-      {/* Floating button to open tracklist if closed and has items */}
-      {tracklist.length > 0 && (
-        <button
-          style={{
-            position: "fixed",
-            right: 20,
-            bottom: 30,
-            zIndex: 1100,
-            background: "none",
-            color: "#00796b",
-            border: "none",
-            borderRadius: 0,
-            width: "auto",
-            height: "auto",
-            fontSize: 36,
-            boxShadow: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
-          title="Open Tracklist"
-          onClick={() => setTracklistOpen(true)}
-          aria-label="Open Tracklist"
-        >
-          ★
-        </button>
-      )}
     </div>
   );
 }
