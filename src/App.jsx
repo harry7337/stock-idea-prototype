@@ -515,10 +515,6 @@ function IdeaGenerationMenu() {
                   handleNext={handleNext}
                   handleAddToTracklist={handleAddToTracklist}
                   tracklist={tracklist}
-                  tracklistOpen={tracklistOpen}
-                  setTracklistOpen={setTracklistOpen}
-                  handleRemoveFromTracklist={handleRemoveFromTracklist}
-                  handleSubmitTracklist={handleSubmitTracklist}
                 />
               </>
             ) : (
