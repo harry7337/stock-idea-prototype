@@ -12,9 +12,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
  */
 export const fetchSearchResults = async (filterData, pageNum = 1, fields = [], limit = 10) => {
   try {
-    const fieldsParam = fields.join(',');
+    // add structured score fields to the api call
+    fields.push("hfg");
+    fields.push("rsr");
+    fields.push("mm");
+
+    // add unstructured score fields to the api call
+    fields.push("mtg");
+    fields.push("br");
+    fields.push("ec");
+    fields.push("ui");
+    const fieldsParam = fields.join(",");
     const offset = (pageNum - 1) * limit;
-    
+
     const response = await fetch(
       `${API_BASE_URL}/search?fields=${fieldsParam}&limit=${limit}&offset=${offset}`,
       {
@@ -23,17 +33,17 @@ export const fetchSearchResults = async (filterData, pageNum = 1, fields = [], l
         body: JSON.stringify(filterData),
       }
     );
-    
+
     const text = await response.text();
     let jsonData = null;
-    
+
     try {
       jsonData = JSON.parse(text);
     } catch (parseError) {
       // If JSON parsing fails, return the text as is
-      console.warn('Failed to parse response as JSON:', parseError);
+      console.warn("Failed to parse response as JSON:", parseError);
     }
-    
+
     return jsonData || text;
   } catch (error) {
     throw new Error(`API request failed: ${error.message}`);
