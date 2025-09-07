@@ -39,7 +39,7 @@ export default function TracklistMenu({
       {notification && (
         <div style={{
           position: 'fixed',
-          top: 24,
+          bottom: 24,
           right: 32,
           background: notification.startsWith('Error') ? '#ffebee' : '#e0f7fa',
           color: notification.startsWith('Error') ? '#c62828' : '#00796b',
