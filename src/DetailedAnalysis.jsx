@@ -19,52 +19,57 @@ function DetailedAnalysis() {
     }
     setDates(dateArr);
     setSelectedDate(dateArr[0]);
+    fetchCompanies(dateArr[0]);
   }, []);
 
+  const fetchCompanies = async (selectedDate) =>{
+    setSelectedDate(selectedDate);
 
-  useEffect(() => {
-    async function fetchCompanies() {
-      if (!selectedDate) {
+    if (!selectedDate) {
+      setCompanies([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch tickers for the selected date
+      const apiBase =
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      // Get tickers for the selected date
+      const tickersRes = await fetch(
+        `${apiBase}/get-tickers?date=${selectedDate}`
+      );
+      const tickersData = await tickersRes.json();
+
+      if (tickersData["exchange_tickers"].length === 0) {
         setCompanies([]);
+        setLoading(false);
         return;
       }
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch tickers for the selected date
-        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-        // Get tickers for the selected date
-        const tickersRes = await fetch(`${apiBase}/get-tickers?date=${selectedDate}`);
-        const tickersData = await tickersRes.json();
-
-        if (tickersData["exchange_tickers"].length === 0) {
-          setCompanies([]);
-          setLoading(false);
-          return;
+      console.log("Making call to /search");
+      const data = tickersData["exchange_tickers"];
+      // Now fetch company data from /search
+      const searchRes = await fetch(
+        `${apiBase}/search?fields=company_name,growth_score,exchange_ticker,mtg,ec,ui,br`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exchange_ticker: data }),
         }
-        console.log("Making call to /search");
-        const data = tickersData["exchange_tickers"];
-        // Now fetch company data from /search
-        const searchRes = await fetch(`${apiBase}/search?fields=company_name,growth_score,exchange_ticker,mtg,ec,ui,br`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({"exchange_ticker":data}),
-        });
-        const searchData = await searchRes.json();
-        if (searchData && Array.isArray(searchData.results)) {
-          setCompanies(searchData.results);
-        } else {
-          setCompanies([]);
-        }
-      } catch (err) {
-        setError('Failed to load companies.');
+      );
+      const searchData = await searchRes.json();
+      if (searchData && Array.isArray(searchData.results)) {
+        setCompanies(searchData.results);
+      } else {
         setCompanies([]);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      setError("Failed to load companies.");
+      setCompanies([]);
+    } finally {
+      setLoading(false);
     }
-    fetchCompanies();
-  }, [selectedDate]);
+  }
 
   return (
     <div
@@ -138,7 +143,7 @@ function DetailedAnalysis() {
         {dates.map((date) => (
           <button
             key={date}
-            onClick={() => setSelectedDate(date)}
+            onClick={() => fetchCompanies(date)}
             style={{
               background: selectedDate === date ? "#e0f7fa" : "none",
               color: "#00796b",
