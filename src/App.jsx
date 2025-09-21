@@ -1,11 +1,9 @@
 
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import TracklistMenu from "./TracklistMenu";
 import { ALL_FIELDS, NUMERIC_FIELDS, FIELD } from "./fields";
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import ColumnSelector from "./ColumnSelector";
 import { RegionSelect, SectorSelect, RoicSelect } from "./FilterSelects";
@@ -13,7 +11,7 @@ import DetailedAnalysis from "./DetailedAnalysis";
 import ResultsTable from "./ResultsTable";
 import { fetchSearchResults, textToFilters } from "./services/apiService";
 import Navbar from "./components/Navbar";
-import { useLocation } from 'react-router-dom';
+
 
 function IdeaGenerationMenu() {
   const [response, setResponse] = useState(null);
@@ -65,7 +63,9 @@ function IdeaGenerationMenu() {
     'industry_classifications',
     'geographic_locations',
     'growth_score',
-    'mcap',
+    'mtg',
+    'br',
+    'ui',
   ];
   const formRef = useRef();
   const [selectedFields, setSelectedFields] = useState(DEFAULT_FIELDS);

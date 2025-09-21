@@ -19,8 +19,18 @@ export const fetchSearchResults = async (filterData, pageNum = 1, fields = [], l
 
     // add unstructured score fields to the api call
     fields.push("mtg");
+    fields.push("mtg_keyword_count");
+    fields.push("mtg_confidence_to_hedging_ratio");
+
     fields.push("br");
+    fields.push("br_key_growth_drivers");
+
+
     fields.push("ui");
+    fields.push("ui_competition_risk_level");
+    fields.push("ui_regulatory_disruption_risk_level");
+    fields.push("ui_other_idiosyncratic_risks");
+
     const fieldsParam = fields.join(",");
     const offset = (pageNum - 1) * limit;
 
@@ -42,7 +52,7 @@ export const fetchSearchResults = async (filterData, pageNum = 1, fields = [], l
       // If JSON parsing fails, return the text as is
       console.warn("Failed to parse response as JSON:", parseError);
     }
-
+    
     return jsonData || text;
   } catch (error) {
     throw new Error(`API request failed: ${error.message}`);

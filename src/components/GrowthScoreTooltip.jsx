@@ -32,22 +32,33 @@ function GrowthScoreTooltip({
   position, 
   value, 
   onMouseEnter, 
-  onMouseLeave 
+  onMouseLeave,
+  title = "Growth Score",
+  showStructured = true,
+  showUnstructured = true,
+  structuredLabels = [
+    "MM (Market Momentum)",
+    "RSR (Revenue surprise & revisions)",
+    "HFG (Historical & Forward Growth Estimates)"
+  ],
+  unstructuredLabels = [
+    "MTG (Management Tone & Guidance Score)",
+    "BR (Brokerage Report - Analyst Conviction Rank)",
+    "UI (Open World Sentiment)"
+  ]
 }) {
   if (!show) return null;
 
   // Score definitions for cleaner mapping
-  const structuredScores = [
-    { label: "MM (Market Momentum)", value: value?.structured?.[0] },
-    { label: "RSR (Revenue surprise & revisions)", value: value?.structured?.[1] },
-    { label: "HFG (Historical & Forward Growth Estimates)", value: value?.structured?.[2] },
-  ];
+  const structuredScores = structuredLabels.map((label, index) => ({
+    label,
+    value: value?.structured?.[index]
+  }));
 
-  const unstructuredScores = [
-    { label: "MTG (Management Tone & Guidance Score)", value: value?.unstructured?.[0] },
-    { label: "BR (Brokerage Report - Analyst Conviction Rank)", value: value?.unstructured?.[1] },
-    { label: "UI (Open World Sentiment)", value: value?.unstructured?.[2] },
-  ];
+  const unstructuredScores = unstructuredLabels.map((label, index) => ({
+    label,
+    value: value?.unstructured?.[index]
+  }));
 
   return (
     <div
@@ -78,39 +89,43 @@ function GrowthScoreTooltip({
           fontSize: "1rem",
         }}
       >
-        Growth Score: {value?.value}
+        {title}: {value?.value}
       </div>
 
-      <ScoreSection title="Structured Scores">
-        {structuredScores.map((score, index) => (
-          <ScoreItem
-            key={index}
-            label={score.label}
-            value={score.value}
-            isLast={index === structuredScores.length - 1}
-          />
-        ))}
-      </ScoreSection>
+      {showStructured && (
+        <ScoreSection title="Structured Scores">
+          {structuredScores.map((score, index) => (
+            <ScoreItem
+              key={index}
+              label={score.label}
+              value={score.value}
+              isLast={index === structuredScores.length - 1}
+            />
+          ))}
+        </ScoreSection>
+      )}
 
-      <ScoreSection title="Unstructured Scores">
-        {unstructuredScores.map((score, index) => (
-          <ScoreItem
-            key={index}
-            label={score.label}
-            value={score.value}
-            isLast={index === unstructuredScores.length - 1}
-          />
-        ))}
-        <div
-          style={{
-            fontSize: "0.8rem",
-            color: "#b2dfdb",
-            marginTop: "0.75rem",
-          }}
-        >
-          Last updated: Q3 2024
-        </div>
-      </ScoreSection>
+      {showUnstructured && (
+        <ScoreSection title="Unstructured Scores">
+          {unstructuredScores.map((score, index) => (
+            <ScoreItem
+              key={index}
+              label={score.label}
+              value={score.value}
+              isLast={index === unstructuredScores.length - 1}
+            />
+          ))}
+          <div
+            style={{
+              fontSize: "0.8rem",
+              color: "#b2dfdb",
+              marginTop: "0.75rem",
+            }}
+          >
+            Last updated: Q3 2024
+          </div>
+        </ScoreSection>
+      )}
     </div>
   );
 }

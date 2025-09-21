@@ -191,7 +191,7 @@ return (
                       fontSize: "0.97rem",
                       color: "#333",
                       position:
-                        col === "company_name" || col === "growth_score"
+                        col === "company_name" || ["growth_score", "mtg", "br"].includes(col)
                           ? "relative"
                           : undefined,
                       width: 220, // enforce column width so wrapping triggers
@@ -199,35 +199,106 @@ return (
                       wordBreak: "break-word",
                       whiteSpace: "pre-wrap",
                       overflowWrap: "anywhere", // allow breaking long tokens
-                      cursor: col === "growth_score" ? "help" : "default",
+                      cursor: ["growth_score", "mtg", "br"].includes(col) ? "help" : "default",
                     }}
                     onMouseEnter={
-                      col === "growth_score"
+                      ["growth_score", "mtg", "br", "ui"].includes(col)
                         ? (e) => {
                             const rect =
                               e.currentTarget.getBoundingClientRect();
+                            
+                            // Determine tooltip configuration based on column
+                            const getTooltipConfig = (columnType) => {
+                              switch(columnType) {
+                                case "growth_score":
+                                  return {
+                                    showStructured: true,
+                                    showUnstructured: true,
+                                    value: {
+                                      value: val,
+                                      structured: [row["mm"], row["rsr"], row["hfg"]],
+                                      unstructured: [row["mtg"], row["br"], row["ui"]],
+                                    }
+                                  };
+                                case "mtg":
+                                  return {
+                                    title: "MTG",
+                                    showStructured: false,
+                                    showUnstructured: true,
+                                    unstructured_labels: ["MTG", "MTG Keyword Count", "MTG Confidence to Hedging Ratio"],
+                                    value: {
+                                      value: val,
+                                      structured: [],
+                                      unstructured: [
+                                        row["mtg"],
+                                        row["mtg_keyword_count"],
+                                        row["mtg_confidence_to_hedging_ratio"],
+                                      ],
+                                    },
+                                  };
+                                case "ui":
+                                  return {
+                                    title: "UI",
+                                    showStructured: false,
+                                    showUnstructured: true,
+                                    unstructured_labels: ["UI", "UI Competition Risk Level", "UI Regulatory Disruption Risk Level", "UI Other Idiosyncratic Risks"],
+                                    value: {
+                                      value: val,
+                                      structured: [],
+                                      unstructured: [
+                                        row["ui"],
+                                        row["ui_competition_risk_level"],
+                                        row[
+                                          "ui_regulatory_disruption_risk_level"
+                                        ],
+                                        row["ui_other_idiosyncratic_risks"]
+                                      ],
+                                    },
+                                  };
+                                case "br":
+                                  return {
+                                    title: "BR",
+                                    showStructured: false,
+                                    showUnstructured: true,
+                                    unstructured_labels: ["BR", "BR Key Growth Drivers"],
+                                    value: {
+                                      value: val,
+                                      structured: [],
+                                      unstructured: [
+                                        row["br"],
+                                        row["br_key_growth_drivers"]
+                                      ],
+                                    },
+                                  };
+                                default:
+                                  return {
+                                    showStructured: false,
+                                    showUnstructured: false,
+                                    value: {
+                                      value: val,
+                                      structured: [],
+                                      unstructured: [],
+                                    }
+                                  };
+                              }
+                            };
+
+                            const config = getTooltipConfig(col);
+                            
                             setGrowthScoreTooltip({
                               show: true,
                               rowIndex: i,
-                              value: {
-                                value: val,
-                                structured: [row["mm"], row["rsr"], row["hfg"]],
-                                unstructured: [
-                                  row["mtg"],
-                                  row["br"],
-                                  row["ui"],
-                                ],
-                              }, // Pass the components of growth score: mm, rsr, hfg
+                              ...config,
                               position: {
                                 x: rect.left + rect.width / 2,
-                                y: rect.top - 70, // Moved further up to avoid covering the value
+                                y: rect.top - 70,
                               },
                             });
                           }
                         : undefined
                     }
                     onMouseLeave={
-                      col === "growth_score"
+                      ["growth_score", "mtg", "br"].includes(col)
                         ? () => {
                             setGrowthScoreTooltip((prev) => ({
                               ...prev,
@@ -311,9 +382,14 @@ return (
 
     {/* Growth Score Tooltip */}
     <GrowthScoreTooltip
+      title={growthScoreTooltip.title}
       show={growthScoreTooltip.show}
       position={growthScoreTooltip.position}
       value={growthScoreTooltip.value}
+      structuredLabels={growthScoreTooltip.structuredLabels}
+      unstructuredLabels={growthScoreTooltip.unstructured_labels}
+      showStructured={growthScoreTooltip.showStructured}
+      showUnstructured={growthScoreTooltip.showUnstructured}
       onMouseEnter={() => {
         // Keep tooltip visible when mouse enters tooltip
         setGrowthScoreTooltip((prev) => ({ ...prev, show: true }));

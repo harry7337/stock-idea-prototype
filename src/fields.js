@@ -4,6 +4,9 @@
 export const FIELD = Object.freeze({
   COMPANY_NAME: "company_name",
   GROWTH_SCORE: "growth_score",
+  MTG: "mtg",
+  BR: "br",
+  UI: "ui",
   EXCHANGE_TICKER: "exchange_ticker",
   INDUSTRY: "industry_classifications",
   REGION: "geographic_locations",
@@ -23,6 +26,9 @@ export const FIELD = Object.freeze({
 export const ALL_FIELDS = [
   { label: "Company Name", value: FIELD.COMPANY_NAME },
   { label: "Growth Score", value: FIELD.GROWTH_SCORE },
+  { label: "MTG", value: FIELD.MTG },
+  { label: "BR", value: FIELD.BR },
+  { label: "UI", value: FIELD.UI },
   { label: "Exchange Ticker", value: FIELD.EXCHANGE_TICKER },
   { label: "Industry", value: FIELD.INDUSTRY },
   { label: "Region", value: FIELD.REGION },
@@ -42,6 +48,9 @@ export const ALL_FIELDS = [
 // Flat list of numeric-like fields (used for sorting toggles)
 export const NUMERIC_FIELD_VALUES = [
   FIELD.GROWTH_SCORE,
+  FIELD.MTG,
+  FIELD.UI,
+  FIELD.BR,
   FIELD.MCAP,
   FIELD.LATEST_Q,
   FIELD.Q_PLUS_1,
