@@ -215,7 +215,6 @@ return (
                                   row["mtg"],
                                   row["br"],
                                   row["ui"],
-                                  row["ec"],
                                 ],
                               }, // Pass the components of growth score: mm, rsr, hfg
                               position: {
