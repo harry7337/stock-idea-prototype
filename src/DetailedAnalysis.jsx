@@ -50,7 +50,7 @@ function DetailedAnalysis() {
       const data = tickersData["exchange_tickers"];
       // Now fetch company data from /search
       const searchRes = await fetch(
-        `${apiBase}/search?fields=company_name,growth_score,exchange_ticker,mtg,ec,ui,br`,
+        `${apiBase}/search?fields=company_name,growth_score,exchange_ticker,mtg,ui,br`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -240,18 +240,6 @@ function DetailedAnalysis() {
                     fontSize: "1rem",
                   }}
                 >
-                  EC
-                </th>
-                <th
-                  style={{
-                    padding: "0.75rem",
-                    borderBottom: "2px solid #b2dfdb",
-                    textAlign: "left",
-                    fontWeight: 600,
-                    color: "#00796b",
-                    fontSize: "1rem",
-                  }}
-                >
                   UI
                 </th>
                 <th
@@ -353,17 +341,7 @@ function DetailedAnalysis() {
                       }}
                     >
                       {row.ui}
-                    </td>
-                    <td
-                      style={{
-                        padding: "0.75rem",
-                        borderBottom: "1px solid #e0e0e0",
-                        fontSize: "0.97rem",
-                        color: "#333",
-                      }}
-                    >
-                      {row.ec}
-                    </td>
+                    </td> 
                     <td
                       style={{
                         padding: "0.75rem",

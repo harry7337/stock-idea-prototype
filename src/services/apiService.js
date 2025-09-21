@@ -20,7 +20,6 @@ export const fetchSearchResults = async (filterData, pageNum = 1, fields = [], l
     // add unstructured score fields to the api call
     fields.push("mtg");
     fields.push("br");
-    fields.push("ec");
     fields.push("ui");
     const fieldsParam = fields.join(",");
     const offset = (pageNum - 1) * limit;
