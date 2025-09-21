@@ -418,39 +418,65 @@ return (
         </div>
 
         <div
-            style={{
-                marginBottom: "0.75rem",
-                padding: "0.5rem",
-                backgroundColor: "#2a2a4e",
-                borderRadius: "6px",
-            }}
-            >
-            <strong style={{ color: "#4dd0e1" }}>Unstructured Scores:</strong>
-            <div style={{ marginTop: "0.5rem" }}>
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.5rem",
+            backgroundColor: "#2a2a4e",
+            borderRadius: "6px",
+          }}
+        >
+          <strong style={{ color: "#4dd0e1" }}>Unstructured Scores:</strong>
+          <div style={{ marginTop: "0.5rem" }}>
             <div
-                style={{
+              style={{
                 display: "flex",
                 justifyContent: "space-between",
                 marginBottom: "0.25rem",
-                }}
+              }}
             >
-                <span>MTG (Management Tone & Guidance Score):</span>
-                <span style={{ fontWeight: "600" }}>
+              <span>MTG (Management Tone & Guidance Score):</span>
+              <span style={{ fontWeight: "600" }}>
                 {growthScoreTooltip.value["unstructured"][0] || "N/A"}
-                </span>
+              </span>
             </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "0.25rem",
+              }}
+            >
+              <span>BR (Brokerage Report - Analyst Conviction Rank):</span>
+              <span style={{ fontWeight: "600" }}>
+                {growthScoreTooltip.value["unstructured"][1] || "N/A"}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "0.25rem",
+              }}
+            >
+              <span>UI (Open World Sentiment):</span>
+              <span style={{ fontWeight: "600" }}>
+                {growthScoreTooltip.value["unstructured"][2] || "N/A"}
+              </span>
+            </div>
+          </div>
+          <div
+            style={{
+              fontSize: "0.8rem",
+              color: "#b2dfdb",
+              marginTop: "0.75rem",
+            }}
+          >
+            Last updated: Q3 2024
+          </div>
         </div>
-        <div
-          style={{
-            fontSize: "0.8rem",
-            color: "#b2dfdb",
-            marginTop: "0.75rem",
-          }}
-        >
-          Last updated: Q3 2024
-        </div>
-        </div>
-        </div>
+      </div>
     )}
   </div>
 );
