@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ALL_FIELDS, NUMERIC_FIELDS } from "./fields";
+import GrowthScoreTooltip from "./components/GrowthScoreTooltip";
 
 function ResultsTable({
   response,
@@ -309,175 +310,19 @@ return (
     </div>
 
     {/* Growth Score Tooltip */}
-    {growthScoreTooltip.show && (
-      <div
-        style={{
-          position: "fixed",
-          left: growthScoreTooltip.position.x - 100, // Center the tooltip
-          top: growthScoreTooltip.position.y - 140, // Position well above the cell to keep value visible
-          width: 400,
-          backgroundColor: "#1a1a2e",
-          border: "1px solid #00796b",
-          borderRadius: "12px",
-          padding: "1.5rem",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-          zIndex: 1000,
-          color: "#faf8fb",
-          fontSize: "0.9rem",
-          lineHeight: 1.5,
-          pointerEvents: "auto", // Allow mouse events so tooltip can be hovered
-        }}
-        onMouseEnter={() => {
-          // Keep tooltip visible when mouse enters tooltip
-          setGrowthScoreTooltip((prev) => ({ ...prev, show: true }));
-        }}
-        onMouseLeave={() => {
-          // Hide tooltip when mouse leaves tooltip
-          setGrowthScoreTooltip((prev) => ({ ...prev, show: false }));
-        }}
-      >
-        <div
-          style={{
-            fontWeight: "600",
-            color: "#00796b",
-            marginBottom: "0.75rem",
-            fontSize: "1rem",
-          }}
-        >
-          Growth Score: {growthScoreTooltip.value["value"]}
-        </div>
-
-        {/* Dynamic interpretation based on score value */}
-        {/* <div
-                    style={{
-                        marginBottom: "0.75rem",
-                        padding: "0.5rem",
-                        backgroundColor: "#2a2a4e",
-                        borderRadius: "6px",
-                    }}
-                >
-                    <strong style={{ color: "#4dd0e1" }}>Score Interpretation:</strong>
-                    <div style={{ marginTop: "0.25rem", fontSize: "0.85rem" }}>
-                        {(() => {
-                            const score = parseFloat(growthScoreTooltip.value["value"]);
-                            if (isNaN(score)) return "Invalid score";
-                            if (score >= 80)
-                                return "🚀 Exceptional growth potential - Top tier investment opportunity";
-                            if (score >= 60)
-                                return "📈 Strong growth prospects - Above average performance expected";
-                            if (score >= 40)
-                                return "📊 Moderate growth potential - Average market performance";
-                            if (score >= 20)
-                                return "⚠️ Limited growth prospects - Below average performance";
-                            return "🔻 Poor growth outlook - High risk investment";
-                        })()}
-                    </div>
-                </div> */}
-
-        <div
-          style={{
-            marginBottom: "0.75rem",
-            padding: "0.5rem",
-            backgroundColor: "#2a2a4e",
-            borderRadius: "6px",
-          }}
-        >
-          <strong style={{ color: "#4dd0e1" }}>Structured Scores:</strong>
-          <div style={{ marginTop: "0.5rem" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "0.25rem",
-              }}
-            >
-              <span>MM (Market Momentum):</span>
-              <span style={{ fontWeight: "600" }}>
-                {growthScoreTooltip.value["structured"][0] || "N/A"}
-              </span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "0.25rem",
-              }}
-            >
-              <span>RSR (Revenue surprise & revisions):</span>
-              <span style={{ fontWeight: "600" }}>
-                {growthScoreTooltip.value["structured"][1] || "N/A"}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>HFG (Historical & Forward Growth Estimates):</span>
-              <span style={{ fontWeight: "600" }}>
-                {growthScoreTooltip.value["structured"][2] || "N/A"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginBottom: "0.75rem",
-            padding: "0.5rem",
-            backgroundColor: "#2a2a4e",
-            borderRadius: "6px",
-          }}
-        >
-          <strong style={{ color: "#4dd0e1" }}>Unstructured Scores:</strong>
-          <div style={{ marginTop: "0.5rem" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "0.25rem",
-              }}
-            >
-              <span>MTG (Management Tone & Guidance Score):</span>
-              <span style={{ fontWeight: "600" }}>
-                {growthScoreTooltip.value["unstructured"][0] || "N/A"}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "0.25rem",
-              }}
-            >
-              <span>BR (Brokerage Report - Analyst Conviction Rank):</span>
-              <span style={{ fontWeight: "600" }}>
-                {growthScoreTooltip.value["unstructured"][1] || "N/A"}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "0.25rem",
-              }}
-            >
-              <span>UI (Open World Sentiment):</span>
-              <span style={{ fontWeight: "600" }}>
-                {growthScoreTooltip.value["unstructured"][2] || "N/A"}
-              </span>
-            </div>
-          </div>
-          <div
-            style={{
-              fontSize: "0.8rem",
-              color: "#b2dfdb",
-              marginTop: "0.75rem",
-            }}
-          >
-            Last updated: Q3 2024
-          </div>
-        </div>
-      </div>
-    )}
+    <GrowthScoreTooltip
+      show={growthScoreTooltip.show}
+      position={growthScoreTooltip.position}
+      value={growthScoreTooltip.value}
+      onMouseEnter={() => {
+        // Keep tooltip visible when mouse enters tooltip
+        setGrowthScoreTooltip((prev) => ({ ...prev, show: true }));
+      }}
+      onMouseLeave={() => {
+        // Hide tooltip when mouse leaves tooltip
+        setGrowthScoreTooltip((prev) => ({ ...prev, show: false }));
+      }}
+    />
   </div>
 );
 }
