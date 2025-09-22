@@ -1,16 +1,55 @@
 // Reusable score item component
-const ScoreItem = ({ label, value, isLast = false }) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: isLast ? 0 : "0.25rem",
-    }}
-  >
-    <span>{label}:</span>
-    <span style={{ fontWeight: "600" }}>{value || "N/A"}</span>
-  </div>
-);
+const ScoreItem = ({ label, value, isLast = false }) => {
+  const displayValue = value || "N/A";
+  const isLongText = displayValue.length > 20; // Threshold for showing "read more"
+  
+  const handleReadMore = () => {
+    alert(displayValue);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: isLast ? 0 : "0.25rem",
+        alignItems: "center",
+      }}
+    >
+      <span>{label}:</span>
+      <div style={{ display: "flex", alignItems: "center", maxWidth: "150px" }}>
+        <span style={{ 
+          fontWeight: "600",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          flex: 1,
+        }}>
+          {displayValue}
+        </span>
+        {isLongText && (
+          <button
+            onClick={handleReadMore}
+            style={{
+              marginLeft: "4px",
+              background: "none",
+              border: "none",
+              color: "#4dd0e1",
+              cursor: "pointer",
+              fontSize: "0.8rem",
+              textDecoration: "underline",
+              padding: 0,
+              whiteSpace: "nowrap",
+            }}
+            title="Click to view full text"
+          >
+            read more
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Reusable score section component
 const ScoreSection = ({ title, children }) => (
