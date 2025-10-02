@@ -1,3 +1,6 @@
+# Stock Idea Generation PoC
+Frontend nginx server for the Stock Idea Generation App. Allows analysts to view a list of securities across geographies and filter them on mutliple criteria. When they want AI analysis on any list of companies, they can add it to a tracklist and submit the same. The data from these companies such as earning call transcripts, brokerage reports are then sent to GPT-5 along with specific prompts to calculate various growth scores (Management Tone & Guidance Score, Analyst Conviction Rank, Net sentiment score). Final Growth Score shown is a weighted average of its subcomponents
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
